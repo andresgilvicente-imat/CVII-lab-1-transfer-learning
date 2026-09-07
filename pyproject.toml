@@ -1,0 +1,68 @@
+[project]
+name = "project-1"
+version = "0.1.0"
+description = "Chapter 1 lab on CNNs, augmentation, and transfer learning."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "matplotlib>=3.10.3",
+    "numpy>=2.3.1",
+    "pillow>=11.3.0",
+    "scikit-learn>=1.7.1",
+    "torch>=2.8.0",
+    "torchvision==0.23.0",
+    "tqdm>=4.67.1",
+]
+
+[dependency-groups]
+dev = [
+    "bandit>=1.9.4",
+    "black>=26.3.1",
+    "complexipy>=5.4.1",
+    "flake8>=7.3.0",
+    "flake8-pyproject>=1.2.4",
+    "ipykernel>=7.3.0",
+    "isort>=8.0.1",
+    "mypy>=2.1.0",
+    "pylint>=4.0.5",
+    "pytest>=9.0.3",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.15.12",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+addopts = "--cov=src --cov-report=term-missing"
+
+[tool.coverage.run]
+omit = ["src/main.py"]
+
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+
+[tool.isort]
+profile = "black"
+
+[tool.flake8]
+max-line-length = 88
+ignore = ["E203", "W503"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+check_untyped_defs = true
+
+# Install CPU-only wheels by default. Remove this section to let uv select CUDA wheels.
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cpu" },
+]
+torchvision = [
+    { index = "pytorch-cpu" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true

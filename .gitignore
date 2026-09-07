@@ -1,0 +1,19 @@
+.venv/
+__pycache__/
+*.py[cod]
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.ipynb
+
+# Images
+images/results/*
+!images/results/.gitkeep
+
+# Downloaded data and model checkpoints
+data/*
+!data/.gitkeep
+weights/*
+!weights/.gitkeep
