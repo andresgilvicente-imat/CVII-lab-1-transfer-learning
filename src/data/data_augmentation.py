@@ -25,7 +25,7 @@ def build_train_transform(image_size: int = 224) -> transforms.Compose:
     transforms_compose = [
         transforms.RandomResizedCrop(size=(image_size, image_size)),
         transforms.RandomHorizontalFlip(),
-        transforms.RandomRotation(random.choice([0, np.pi / 2, np.pi, 3*np.pi / 2])),
+        transforms.RandomRotation(random.choice([0, 90, 180, 270])),
         transforms.ColorJitter(),
         transforms.ToTensor(),
         transforms.Normalize(
