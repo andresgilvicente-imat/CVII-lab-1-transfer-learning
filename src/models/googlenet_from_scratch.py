@@ -105,7 +105,21 @@ class InceptionBlock(nn.Module):
 
         super().__init__()
 
-        raise NotImplementedError  # TODO
+        # TODO
+
+        self.in_channels: int = inception_block_config.in_channels
+        self.channels_1x1: int = inception_block_config.channels_1x1
+        self.channels_3x3_reduce: int = inception_block_config.channels_3x3_reduce
+        self.channels_3x3: int = inception_block_config.channels_3x3
+        self.channels_5x5_reduce: int = inception_block_config.channels_5x5_reduce
+        self.channels_5x5: int = inception_block_config.channels_5x5
+        self.pool_projection: int = inception_block_config.pool_projection
+
+        # Branches ( adjust padding to mantain spatial dimensions the same: p = (k-1)//2 )
+        self.branch_1 = self._get_branch_1(in_channels=self.in_channels, channels_1x1=self.channels_1x1)
+        self.branch_2 = self._get_branch_2(in_channels=self.in_channels, channels_3x3_reduce=self.channels_3x3_reduce, channels_3x3=self.channels_3x3)
+        self.branch_3 = self._get_branch_3(in_channels=self.in_channels, channels_5x5_reduce=self.channels_5x5_reduce, channels_5x5=self.channels_5x5)
+        self.branch_4 = self._get_branch_4(in_channels=self.in_channels, pool_projection=self.pool_projection)
 
     @staticmethod
     def _get_branch_1(in_channels: int, channels_1x1: int) -> nn.Sequential:
@@ -120,6 +134,14 @@ class InceptionBlock(nn.Module):
         """
 
         # TODO
+
+        return nn.Sequential(
+            nn.Conv2d(
+                in_channels=in_channels,
+                out_channels=channels_1x1,
+                kernel_size=1,
+            )
+        )
 
     @staticmethod
     def _get_branch_2(
@@ -138,6 +160,23 @@ class InceptionBlock(nn.Module):
 
         # TODO
 
+        kernel_size: int = 3
+
+        return nn.Sequential(
+            ConvBlock(
+                in_channels=in_channels,
+                out_channels=channels_3x3_reduce,
+                kernel_size=1,
+
+            ),
+            ConvBlock(
+                in_channels=channels_3x3_reduce,
+                out_channels=channels_3x3,
+                kernel_size=kernel_size,
+                padding=(kernel_size-1)//2 
+            )
+        )
+
     @staticmethod
     def _get_branch_3(
         in_channels: int, channels_5x5_reduce: int, channels_5x5: int
@@ -147,13 +186,29 @@ class InceptionBlock(nn.Module):
         Args:
             in_channels: Number of input channels.
             channels_5x5_reduce: Number of output of channels of the 1x1 convolution.
-            channels_5x: Number of output channels of the branch.
+            channels_5x5: Number of output channels of the branch.
 
         Returns:
             Third Inception block branch.
         """
 
         # TODO
+
+        kernel_size: int = 5
+
+        return nn.Sequential(
+            ConvBlock(
+                in_channels=in_channels,
+                out_channels=channels_5x5_reduce,
+                kernel_size=1
+            ),
+            ConvBlock(
+                in_channels=channels_5x5_reduce,
+                out_channels=channels_5x5,
+                kernel_size=kernel_size,
+                padding=(kernel_size-1)//2 
+            )
+        )
 
     @staticmethod
     def _get_branch_4(in_channels: int, pool_projection: int) -> nn.Sequential:
@@ -169,6 +224,21 @@ class InceptionBlock(nn.Module):
 
         # TODO
 
+        kernel_size: int = 3
+
+        return nn.Sequential(
+            nn.MaxPool2d(
+                kernel_size=kernel_size,
+                padding=(kernel_size-1)//2 ,
+                stride=1
+            ),
+            ConvBlock(
+                in_channels=in_channels,
+                out_channels=pool_projection,
+                kernel_size=1
+            )
+        )
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass.
 
@@ -181,6 +251,17 @@ class InceptionBlock(nn.Module):
         """
 
         # TODO
+
+        # Apply branches independently
+        output1 = self.branch_1(x)
+        output2 = self.branch_2(x)
+        output3 = self.branch_3(x)
+        output4 = self.branch_4(x)
+
+        # Concatenate the tensors in the channels dimension (dim=1)
+        output: torch.Tensor = torch.cat([output1, output2, output3, output4], dim=1)
+
+        return output
 
 
 class GoogLeNetFromScratch(BaseImageClassifier):
