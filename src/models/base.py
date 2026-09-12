@@ -79,7 +79,7 @@ class BaseImageClassifier(nn.Module):
 
         output_cnn = self.cnn(x)
         output_avgpool = self.avgpool(output_cnn)
-        output_flatten = torch.flatten(output_avgpool, start_dim=1, end_dim=-1)
+        output_flatten = torch.flatten(output_avgpool, start_dim=1)
         output_classifier = self.classifier(output_flatten)
 
         return output_classifier

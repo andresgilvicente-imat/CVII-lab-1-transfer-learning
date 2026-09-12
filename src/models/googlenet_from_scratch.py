@@ -277,7 +277,34 @@ class GoogLeNetFromScratch(BaseImageClassifier):
 
         super().__init__(num_classes)
 
-        raise NotImplementedError  # TODO
+        # TODO
+
+        avgpool_output_size: int = 1  # Specified in this function's docstring
+
+        (
+            self.cnn_block_1,
+            self.cnn_block_2,
+            self.cnn_block_3,
+        ) = self._get_cnn_blocks()
+        
+        self.avgpool = nn.AdaptiveAvgPool2d(output_size=avgpool_output_size)
+
+        self.aux_classifier_1 = AuxiliaryClassifier(
+            in_channels=96,
+            num_classes=num_classes
+        )
+
+        self.aux_classifier_2 = AuxiliaryClassifier(
+            in_channels=128,
+            num_classes=num_classes
+        )
+
+        self.classifier = self._get_classifier(
+            num_classes=num_classes,
+            dropout=dropout,
+            in_features=160
+        )
+
 
     @staticmethod
     def _get_cnn_blocks() -> tuple[nn.Sequential, nn.Sequential, nn.Sequential]:
@@ -288,6 +315,89 @@ class GoogLeNetFromScratch(BaseImageClassifier):
         """
 
         # TODO
+
+        cnn_block_1 = nn.Sequential(
+            ConvBlock(
+                in_channels=3,
+                out_channels=32,                
+                kernel_size=7,
+                stride=2
+            ),
+            nn.MaxPool2d(
+                kernel_size=3,
+                stride=2
+            ),
+            ConvBlock(
+                in_channels=32,
+                out_channels=32,
+                kernel_size=1
+            ),
+            ConvBlock(
+                in_channels=32,
+                out_channels=64,
+                kernel_size=3
+            ),
+            nn.MaxPool2d(
+                kernel_size=3,
+                stride=2
+            ),
+            InceptionBlock(
+                inception_block_config=InceptionBlockConfig(
+                    in_channels=64,
+                    channels_1x1=16,
+                    channels_3x3_reduce=16,
+                    channels_3x3=24,
+                    channels_5x5_reduce=8,
+                    channels_5x5=8,
+                    pool_projection=16
+                )
+            ),
+            InceptionBlock(
+                inception_block_config=InceptionBlockConfig(
+                    in_channels=64,
+                    channels_1x1=24,
+                    channels_3x3_reduce=24,
+                    channels_3x3=40,
+                    channels_5x5_reduce=8,
+                    channels_5x5=8,
+                    pool_projection=24
+                )
+            )
+        )
+
+        cnn_block_2 = nn.Sequential(
+            nn.MaxPool2d(
+                kernel_size=3,
+                stride=2
+            ),
+            InceptionBlock(
+                inception_block_config=InceptionBlockConfig(
+                    in_channels=96,
+                    channels_1x1=32,
+                    channels_3x3_reduce=24,
+                    channels_3x3=48,
+                    channels_5x5_reduce=8,
+                    channels_5x5=16,
+                    pool_projection=32
+                )
+            )
+        )
+
+        cnn_block_3 = nn.Sequential(
+            InceptionBlock(
+                inception_block_config=InceptionBlockConfig(
+                    in_channels=128,
+                    channels_1x1=40,
+                    channels_3x3_reduce=32,
+                    channels_3x3=64,
+                    channels_5x5_reduce=8,
+                    channels_5x5=16,
+                    pool_projection=40
+                )
+            )
+        )
+
+        return (cnn_block_1, cnn_block_2, cnn_block_3)
 
     def forward_with_auxiliary(
         self, x: torch.Tensor, *, use_auxiliary: bool = True
@@ -303,6 +413,21 @@ class GoogLeNetFromScratch(BaseImageClassifier):
         """
 
         # TODO
+
+        auxiliary_logits: list[torch.Tensor] = []
+
+        output_1 = self.cnn_block_1(x)
+        output_2 = self.cnn_block_2(output_1)
+        output_3 = self.cnn_block_3(output_2)
+        output_4 = self.avgpool(torch.flatten(output_3, start_dim=1))  # Flatt and then pool
+        main_logits = self.classifier(output_4)
+
+        if use_auxiliary:
+            auxiliary_logits.append(self.aux_classifier_1(output_1))
+            auxiliary_logits.append(self.aux_classifier_2(output_2))
+
+        return (main_logits, auxiliary_logits)
+
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass.
