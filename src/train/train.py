@@ -70,6 +70,36 @@ class Trainer:
 
         # TODO
 
+        total_predictions = 0
+
+        self.model.train()
+
+        for inputs, targets in loader:
+
+            inputs, targets = inputs.to(self.device), targets.to(self.device)
+
+            self.optimizer.zero_grad()
+
+            predictions, auxiliary_logits = self.model.forward_with_auxiliary(inputs)
+
+            loss = self.criterion(predictions, targets, auxiliary_logits)  # main loss + weighted aux loss
+
+            loss.backward()
+            self.optimizer.step()
+
+            total_loss += self.criterion.criterion(predictions, targets).item()  # only main loss (without aux loss)
+
+            total_correct += (torch.argmax(predictions, dim=-1) == targets).sum().item()
+            total_predictions += targets.size(0)  # the number of images included in this batch is added to the total_predictions count
+
+            self._add_auxiliary_losses(total_auxiliary_losses, auxiliary_logits, targets)  # add aux loss to each different aux classifier it is a list)
+
+        return (
+            total_loss / len(loader),
+            total_correct / total_predictions,
+            [auxiliary_loss / len(loader) for auxiliary_loss in total_auxiliary_losses],
+        )
+
     @torch.no_grad()
     def _valid_one_epoch(self, loader: DataLoader) -> tuple[float, float, list[float]]:
         """Runs one validation epoch.
@@ -86,6 +116,29 @@ class Trainer:
         total_auxiliary_losses: list[float] = []
 
         # TODO
+
+        self.model.eval()
+        
+        total_predictions = 0
+
+        for inputs, targets in loader:
+
+            inputs, targets = inputs.to(self.device), targets.to(self.device)
+
+            predictions, auxiliary_logits = self.model.forward_with_auxiliary(inputs)
+
+            total_loss += self.criterion.criterion(predictions, targets).item()  # only main loss (without aux loss)
+
+            total_correct += (torch.argmax(predictions, dim=-1) == targets).sum().item()
+            total_predictions += targets.size(0)  # the number of images included in this batch is added to the total_predictions count
+
+            self._add_auxiliary_losses(total_auxiliary_losses, auxiliary_logits, targets)  # add aux loss to each different aux classifier it is a list)
+
+        return (
+            total_loss / len(loader),
+            total_correct / total_predictions,
+            [auxiliary_loss / len(loader) for auxiliary_loss in total_auxiliary_losses],
+        )
 
     @staticmethod
     def _update_training_progress(
@@ -176,6 +229,26 @@ class Trainer:
         self.early_stopping.reset()
 
         # TODO
+
+        for epoch in tqdm(range(epochs)):
+
+            train_results = self._train_one_epoch(train_loader)
+
+            validation_results = self._valid_one_epoch(validation_loader)
+
+            self._update_history(history, train_results, validation_results)
+
+            self._update_training_progress(epoch, epochs, history)
+
+            self.early_stopping(
+                val_loss=validation_results[0], 
+                model_state_dict=self.model.state_dict(), 
+                path=path_weights
+            )
+
+            if self.early_stopping.apply_early_stop:
+                break
+
 
         self.save_training_figure(history, path_figure)
         parameters = torch.load(
