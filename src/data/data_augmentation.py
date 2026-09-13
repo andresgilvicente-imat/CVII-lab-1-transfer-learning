@@ -4,9 +4,6 @@ from torchvision import transforms
 
 from src.config import config
 
-import random
-import numpy as np
-
 
 def build_train_transform(image_size: int = 224) -> transforms.Compose:
     """Build ImageNet-compatible train transforms with data augmentation.
@@ -25,8 +22,8 @@ def build_train_transform(image_size: int = 224) -> transforms.Compose:
     transforms_compose = [
         transforms.RandomResizedCrop(size=(image_size, image_size)),
         transforms.RandomHorizontalFlip(),
-        transforms.RandomRotation(random.choice([0, 90, 180, 270])),
-        transforms.ColorJitter(),
+        transforms.RandomRotation(180),
+        transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
         transforms.ToTensor(),
         transforms.Normalize(
             mean=config.data.imagenet_mean, 
@@ -55,7 +52,6 @@ def build_eval_transform(image_size: int = 224) -> transforms.Compose:
 
     transforms_compose = [
             transforms.Resize(size=(image_size, image_size)),
-            transforms.ColorJitter(),
             transforms.ToTensor(),
             transforms.Normalize(
                 mean=config.data.imagenet_mean, 
