@@ -49,6 +49,24 @@ class UseFeatures(FineTuningTechnique):
 
         # TODO
 
+        self.base_model.eval()
+
+        all_features: list[np.ndarray] = []
+        all_targets: list[np.ndarray] = []
+
+        device = next(self.base_model.parameters()).device
+
+        for images, batch_targets in loader:
+            images = images.to(device)
+            features = self.base_model.cnn(images)
+            features = self.base_model.avgpool(features)
+            features = torch.flatten(features, start_dim=1)
+            
+            all_features.append(features.cpu().numpy())
+            all_targets.append(np.asarray(batch_targets, dtype=np.int64))
+
+        return np.concatenate(all_features, axis=0), np.concatenate(all_targets, axis=0)
+
     def fit(
         self, train_loader: DataLoader, val_loader: DataLoader, epochs: int
     ) -> RandomForestClassifier:
@@ -64,3 +82,8 @@ class UseFeatures(FineTuningTechnique):
         """
 
         # TODO
+
+        train_features, train_targets = self.extract_dataset_features(train_loader)
+        self.classifier.fit(train_features, train_targets)
+
+        return self.classifier
