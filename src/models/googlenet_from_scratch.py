@@ -1,6 +1,7 @@
 """GoogLeNet implemented from scratch."""
 
 from dataclasses import dataclass
+from typing import Any
 
 import torch
 from torch import nn
@@ -63,7 +64,7 @@ class ConvBlock(nn.Sequential):
     """Convolution followed by batch normalization and ReLU."""
 
     def __init__(
-        self, in_channels: int, out_channels: int, kernel_size: int, **kwargs
+        self, in_channels: int, out_channels: int, kernel_size: int, **kwargs: Any
     ) -> None:
         """Constructor of the class.
 
@@ -115,11 +116,23 @@ class InceptionBlock(nn.Module):
         self.channels_5x5: int = inception_block_config.channels_5x5
         self.pool_projection: int = inception_block_config.pool_projection
 
-        # Branches ( adjust padding to mantain spatial dimensions the same: p = (k-1)//2 )
-        self.branch_1 = self._get_branch_1(in_channels=self.in_channels, channels_1x1=self.channels_1x1)
-        self.branch_2 = self._get_branch_2(in_channels=self.in_channels, channels_3x3_reduce=self.channels_3x3_reduce, channels_3x3=self.channels_3x3)
-        self.branch_3 = self._get_branch_3(in_channels=self.in_channels, channels_5x5_reduce=self.channels_5x5_reduce, channels_5x5=self.channels_5x5)
-        self.branch_4 = self._get_branch_4(in_channels=self.in_channels, pool_projection=self.pool_projection)
+        # branches (padding = (k-1)//2 to keep the spatial size unchanged)
+        self.branch_1 = self._get_branch_1(
+            in_channels=self.in_channels, channels_1x1=self.channels_1x1
+        )
+        self.branch_2 = self._get_branch_2(
+            in_channels=self.in_channels,
+            channels_3x3_reduce=self.channels_3x3_reduce,
+            channels_3x3=self.channels_3x3,
+        )
+        self.branch_3 = self._get_branch_3(
+            in_channels=self.in_channels,
+            channels_5x5_reduce=self.channels_5x5_reduce,
+            channels_5x5=self.channels_5x5,
+        )
+        self.branch_4 = self._get_branch_4(
+            in_channels=self.in_channels, pool_projection=self.pool_projection
+        )
 
     @staticmethod
     def _get_branch_1(in_channels: int, channels_1x1: int) -> nn.Sequential:
@@ -167,14 +180,13 @@ class InceptionBlock(nn.Module):
                 in_channels=in_channels,
                 out_channels=channels_3x3_reduce,
                 kernel_size=1,
-
             ),
             ConvBlock(
                 in_channels=channels_3x3_reduce,
                 out_channels=channels_3x3,
                 kernel_size=kernel_size,
-                padding=(kernel_size-1)//2 
-            )
+                padding=(kernel_size - 1) // 2,
+            ),
         )
 
     @staticmethod
@@ -198,16 +210,14 @@ class InceptionBlock(nn.Module):
 
         return nn.Sequential(
             ConvBlock(
-                in_channels=in_channels,
-                out_channels=channels_5x5_reduce,
-                kernel_size=1
+                in_channels=in_channels, out_channels=channels_5x5_reduce, kernel_size=1
             ),
             ConvBlock(
                 in_channels=channels_5x5_reduce,
                 out_channels=channels_5x5,
                 kernel_size=kernel_size,
-                padding=(kernel_size-1)//2 
-            )
+                padding=(kernel_size - 1) // 2,
+            ),
         )
 
     @staticmethod
@@ -228,15 +238,11 @@ class InceptionBlock(nn.Module):
 
         return nn.Sequential(
             nn.MaxPool2d(
-                kernel_size=kernel_size,
-                padding=(kernel_size-1)//2 ,
-                stride=1
+                kernel_size=kernel_size, padding=(kernel_size - 1) // 2, stride=1
             ),
             ConvBlock(
-                in_channels=in_channels,
-                out_channels=pool_projection,
-                kernel_size=1
-            )
+                in_channels=in_channels, out_channels=pool_projection, kernel_size=1
+            ),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -286,25 +292,20 @@ class GoogLeNetFromScratch(BaseImageClassifier):
             self.cnn_block_2,
             self.cnn_block_3,
         ) = self._get_cnn_blocks()
-        
+
         self.avgpool = nn.AdaptiveAvgPool2d(output_size=avgpool_output_size)
 
         self.aux_classifier_1 = AuxiliaryClassifier(
-            in_channels=96,
-            num_classes=num_classes
+            in_channels=96, num_classes=num_classes
         )
 
         self.aux_classifier_2 = AuxiliaryClassifier(
-            in_channels=128,
-            num_classes=num_classes
+            in_channels=128, num_classes=num_classes
         )
 
         self.classifier = self._get_classifier(
-            num_classes=num_classes,
-            dropout=dropout,
-            in_features=160
+            num_classes=num_classes, dropout=dropout, in_features=160
         )
-
 
     @staticmethod
     def _get_cnn_blocks() -> tuple[nn.Sequential, nn.Sequential, nn.Sequential]:
@@ -317,30 +318,11 @@ class GoogLeNetFromScratch(BaseImageClassifier):
         # TODO
 
         cnn_block_1 = nn.Sequential(
-            ConvBlock(
-                in_channels=3,
-                out_channels=32,                
-                kernel_size=7,
-                stride=2
-            ),
-            nn.MaxPool2d(
-                kernel_size=3,
-                stride=2
-            ),
-            ConvBlock(
-                in_channels=32,
-                out_channels=32,
-                kernel_size=1
-            ),
-            ConvBlock(
-                in_channels=32,
-                out_channels=64,
-                kernel_size=3
-            ),
-            nn.MaxPool2d(
-                kernel_size=3,
-                stride=2
-            ),
+            ConvBlock(in_channels=3, out_channels=32, kernel_size=7, stride=2),
+            nn.MaxPool2d(kernel_size=3, stride=2),
+            ConvBlock(in_channels=32, out_channels=32, kernel_size=1),
+            ConvBlock(in_channels=32, out_channels=64, kernel_size=3),
+            nn.MaxPool2d(kernel_size=3, stride=2),
             InceptionBlock(
                 inception_block_config=InceptionBlockConfig(
                     in_channels=64,
@@ -349,7 +331,7 @@ class GoogLeNetFromScratch(BaseImageClassifier):
                     channels_3x3=24,
                     channels_5x5_reduce=8,
                     channels_5x5=8,
-                    pool_projection=16
+                    pool_projection=16,
                 )
             ),
             InceptionBlock(
@@ -360,16 +342,13 @@ class GoogLeNetFromScratch(BaseImageClassifier):
                     channels_3x3=40,
                     channels_5x5_reduce=8,
                     channels_5x5=8,
-                    pool_projection=24
+                    pool_projection=24,
                 )
-            )
+            ),
         )
 
         cnn_block_2 = nn.Sequential(
-            nn.MaxPool2d(
-                kernel_size=3,
-                stride=2
-            ),
+            nn.MaxPool2d(kernel_size=3, stride=2),
             InceptionBlock(
                 inception_block_config=InceptionBlockConfig(
                     in_channels=96,
@@ -378,9 +357,9 @@ class GoogLeNetFromScratch(BaseImageClassifier):
                     channels_3x3=48,
                     channels_5x5_reduce=8,
                     channels_5x5=16,
-                    pool_projection=32
+                    pool_projection=32,
                 )
-            )
+            ),
         )
 
         cnn_block_3 = nn.Sequential(
@@ -392,11 +371,13 @@ class GoogLeNetFromScratch(BaseImageClassifier):
                     channels_3x3=64,
                     channels_5x5_reduce=8,
                     channels_5x5=16,
-                    pool_projection=40
+                    pool_projection=40,
                 )
             )
         )
 
+        # split in 3 so forward_with_auxiliary can tap block_1 and block_2 outputs
+        # for the auxiliary classifiers, and block_3 output for the main classifier
         return (cnn_block_1, cnn_block_2, cnn_block_3)
 
     def forward_with_auxiliary(
@@ -419,7 +400,9 @@ class GoogLeNetFromScratch(BaseImageClassifier):
         output_1 = self.cnn_block_1(x)
         output_2 = self.cnn_block_2(output_1)
         output_3 = self.cnn_block_3(output_2)
-        output_4 = torch.flatten(self.avgpool(output_3), start_dim=1)  # Flatt and then pool
+        output_4 = torch.flatten(
+            self.avgpool(output_3), start_dim=1
+        )  # Flatt and then pool
         main_logits = self.classifier(output_4)
 
         if use_auxiliary:
@@ -427,7 +410,6 @@ class GoogLeNetFromScratch(BaseImageClassifier):
             auxiliary_logits.append(self.aux_classifier_2(output_2))
 
         return (main_logits, auxiliary_logits)
-
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass.

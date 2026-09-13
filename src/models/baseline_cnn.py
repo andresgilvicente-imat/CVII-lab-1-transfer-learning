@@ -27,11 +27,12 @@ class BaseCNN(BaseImageClassifier):
 
         self.avgpool = nn.AdaptiveAvgPool2d(output_size=avgpool_output_size)
 
+        # in_features is the flattened size after the pool: o x h x w = 128 x 4 x 4
         self.classifier = self._get_classifier(
             num_classes=num_classes,
             dropout=dropout,
-            in_features=output_feature_maps*(avgpool_output_size)**2
-        )  # The classifier is used after the flatten, so the in_features dimension is the result of multiplying: o x h x w = 128 x 4 x 4
+            in_features=output_feature_maps * (avgpool_output_size) ** 2,
+        )
 
     @staticmethod
     def _get_cnn() -> nn.Sequential:
@@ -45,30 +46,15 @@ class BaseCNN(BaseImageClassifier):
 
         # padding = (kernel_size - 1) // 2 keeps the spatial size unchanged
         cnn = nn.Sequential(
-            nn.Conv2d(
-                in_channels=3,
-                out_channels=32,
-                kernel_size=3,
-                padding=1
-            ),
+            nn.Conv2d(in_channels=3, out_channels=32, kernel_size=3, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2),
-            nn.Conv2d(
-                in_channels=32,
-                out_channels=64,
-                kernel_size=3,
-                padding=1
-            ),
+            nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2),
-            nn.Conv2d(
-                in_channels=64,
-                out_channels=128,
-                kernel_size=3,
-                padding=1
-            ),
+            nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, padding=1),
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2)
+            nn.MaxPool2d(kernel_size=2),
         )
 
         return cnn

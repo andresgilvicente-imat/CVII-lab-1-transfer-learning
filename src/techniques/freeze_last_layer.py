@@ -36,6 +36,9 @@ class FreezeLastLayer(FineTuningTechnique):
         for parameter in self.base_model.classifier.parameters():
             parameter.requires_grad = True
 
+        # this has to run before creating the Trainer, since its optimizer
+        # only picks up the parameters that have requires_grad = True at that point
+
         return self.base_model
 
     def fit(
@@ -68,9 +71,7 @@ class FreezeLastLayer(FineTuningTechnique):
             validation_loader=val_loader,
             epochs=epochs,
             path_weights=weights_path,
-            path_figure=figure_path
+            path_figure=figure_path,
         )
 
         return trained_model
-
-

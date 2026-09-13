@@ -58,10 +58,12 @@ class UseFeatures(FineTuningTechnique):
 
         for images, batch_targets in loader:
             images = images.to(device)
+            # same as BaseImageClassifier.forward but stopping before the classifier,
+            # since we want the flattened features, not the class logits
             features = self.base_model.cnn(images)
             features = self.base_model.avgpool(features)
             features = torch.flatten(features, start_dim=1)
-            
+
             all_features.append(features.cpu().numpy())
             all_targets.append(np.asarray(batch_targets, dtype=np.int64))
 

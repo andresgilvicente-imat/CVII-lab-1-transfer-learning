@@ -82,17 +82,25 @@ class Trainer:
 
             predictions, auxiliary_logits = self.model.forward_with_auxiliary(inputs)
 
-            loss = self.criterion(predictions, targets, auxiliary_logits)  # main loss + weighted aux loss
+            loss = self.criterion(
+                predictions, targets, auxiliary_logits
+            )  # main loss + weighted aux loss
 
             loss.backward()
             self.optimizer.step()
 
-            total_loss += self.criterion.criterion(predictions, targets).item()  # only main loss (without aux loss)
+            total_loss += self.criterion.criterion(
+                predictions, targets
+            ).item()  # only main loss (without aux loss)
 
             total_correct += (torch.argmax(predictions, dim=-1) == targets).sum().item()
-            total_predictions += targets.size(0)  # the number of images included in this batch is added to the total_predictions count
+            # keep count of how many images this epoch has gone through so far
+            total_predictions += targets.size(0)
 
-            self._add_auxiliary_losses(total_auxiliary_losses, auxiliary_logits, targets)  # add aux loss to each different aux classifier it is a list)
+            # unweighted, just for plotting the auxiliary curves later
+            self._add_auxiliary_losses(
+                total_auxiliary_losses, auxiliary_logits, targets
+            )
 
         return (
             total_loss / len(loader),
@@ -118,7 +126,7 @@ class Trainer:
         # TODO
 
         self.model.eval()
-        
+
         total_predictions = 0
 
         for inputs, targets in loader:
@@ -127,12 +135,18 @@ class Trainer:
 
             predictions, auxiliary_logits = self.model.forward_with_auxiliary(inputs)
 
-            total_loss += self.criterion.criterion(predictions, targets).item()  # only main loss (without aux loss)
+            total_loss += self.criterion.criterion(
+                predictions, targets
+            ).item()  # only main loss (without aux loss)
 
             total_correct += (torch.argmax(predictions, dim=-1) == targets).sum().item()
-            total_predictions += targets.size(0)  # the number of images included in this batch is added to the total_predictions count
+            # keep count of how many images this epoch has gone through so far
+            total_predictions += targets.size(0)
 
-            self._add_auxiliary_losses(total_auxiliary_losses, auxiliary_logits, targets)  # add aux loss to each different aux classifier it is a list)
+            # unweighted, just for plotting the auxiliary curves later
+            self._add_auxiliary_losses(
+                total_auxiliary_losses, auxiliary_logits, targets
+            )
 
         return (
             total_loss / len(loader),
@@ -241,14 +255,13 @@ class Trainer:
             self._update_training_progress(epoch, epochs, history)
 
             self.early_stopping(
-                val_loss=validation_results[0], 
-                model_state_dict=self.model.state_dict(), 
-                path=path_weights
+                val_loss=validation_results[0],
+                model_state_dict=self.model.state_dict(),
+                path=path_weights,
             )
 
             if self.early_stopping.apply_early_stop:
                 break
-
 
         self.save_training_figure(history, path_figure)
         parameters = torch.load(

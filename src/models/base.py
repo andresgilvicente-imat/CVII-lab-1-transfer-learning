@@ -52,18 +52,17 @@ class BaseImageClassifier(nn.Module):
         sequential = nn.Sequential(
             nn.Linear(in_features, hidden_dimensions[0]),
             nn.ReLU(),
-            nn.Dropout(p=dropout)
+            nn.Dropout(p=dropout),
         )
 
-        for i in range(len(hidden_dimensions)-1):
-            sequential.append(nn.Linear(hidden_dimensions[i], hidden_dimensions[i+1]))
+        for i in range(len(hidden_dimensions) - 1):
+            sequential.append(nn.Linear(hidden_dimensions[i], hidden_dimensions[i + 1]))
             sequential.append(nn.ReLU())
             sequential.append(nn.Dropout(p=dropout))
 
         sequential.append(nn.Linear(hidden_dimensions[-1], num_classes))
 
         return sequential
-
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass.
@@ -83,7 +82,6 @@ class BaseImageClassifier(nn.Module):
         output_classifier = self.classifier(output_flatten)
 
         return output_classifier
-
 
     def forward_with_auxiliary(
         self, x: torch.Tensor

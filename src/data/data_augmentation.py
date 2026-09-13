@@ -26,15 +26,12 @@ def build_train_transform(image_size: int = 224) -> transforms.Compose:
         transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
         transforms.ToTensor(),
         transforms.Normalize(
-            mean=config.data.imagenet_mean, 
-            std=config.data.imagenet_std
+            mean=config.data.imagenet_mean, std=config.data.imagenet_std
         ),
-        transforms.RandomErasing()
+        transforms.RandomErasing(),
     ]
 
-    return transforms.Compose(
-        transforms=transforms_compose
-    )
+    return transforms.Compose(transforms=transforms_compose)
 
 
 def build_eval_transform(image_size: int = 224) -> transforms.Compose:
@@ -51,14 +48,11 @@ def build_eval_transform(image_size: int = 224) -> transforms.Compose:
     # TODO
 
     transforms_compose = [
-            transforms.Resize(size=(image_size, image_size)),
-            transforms.ToTensor(),
-            transforms.Normalize(
-                mean=config.data.imagenet_mean, 
-                std=config.data.imagenet_std
-            ),
-        ]
-    
-    return transforms.Compose(
-        transforms=transforms_compose
-    )
+        transforms.Resize(size=(image_size, image_size)),
+        transforms.ToTensor(),
+        transforms.Normalize(
+            mean=config.data.imagenet_mean, std=config.data.imagenet_std
+        ),
+    ]
+
+    return transforms.Compose(transforms=transforms_compose)
