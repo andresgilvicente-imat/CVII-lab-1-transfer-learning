@@ -43,3 +43,10 @@ class GoogLeNetLoss(nn.Module):
         """
 
         # TODO
+
+        main_loss: torch.Tensor = self.criterion(y_pred, y_true)
+
+        for aux_classifier_pred in y_pred_clfs:
+            main_loss += self.weight_aux_clfs*self.criterion(aux_classifier_pred, y_true)
+
+        return main_loss 
