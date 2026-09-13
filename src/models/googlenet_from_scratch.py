@@ -419,7 +419,7 @@ class GoogLeNetFromScratch(BaseImageClassifier):
         output_1 = self.cnn_block_1(x)
         output_2 = self.cnn_block_2(output_1)
         output_3 = self.cnn_block_3(output_2)
-        output_4 = self.avgpool(torch.flatten(output_3, start_dim=1))  # Flatt and then pool
+        output_4 = torch.flatten(self.avgpool(output_3), start_dim=1)  # Flatt and then pool
         main_logits = self.classifier(output_4)
 
         if use_auxiliary:
