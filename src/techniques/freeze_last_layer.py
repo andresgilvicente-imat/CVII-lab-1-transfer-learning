@@ -23,6 +23,21 @@ class FreezeLastLayer(FineTuningTechnique):
 
         # TODO
 
+        for parameter in self.base_model.parameters():
+            parameter.requires_grad = False
+
+        convolutions = [
+            module
+            for module in self.base_model.modules()
+            if isinstance(module, nn.Conv2d)
+        ]
+        for parameter in convolutions[-1].parameters():
+            parameter.requires_grad = True
+        for parameter in self.base_model.classifier.parameters():
+            parameter.requires_grad = True
+
+        return self.base_model
+
     def fit(
         self, train_loader: DataLoader, val_loader: DataLoader, epochs: int
     ) -> BaseImageClassifier:
@@ -41,3 +56,21 @@ class FreezeLastLayer(FineTuningTechnique):
         figure_path = f"{config.paths.results_dir}googlenet_finetune_training.png"
 
         # TODO: create a weighted criterion and pass it to `Trainer`
+
+        prepared_model = self.prepare_model()
+
+        loss = GoogLeNetLoss(class_weights=get_class_weights(train_loader))
+
+        trainer = Trainer(model=prepared_model, criterion=loss)
+
+        trained_model = trainer.fit(
+            train_loader=train_loader,
+            validation_loader=val_loader,
+            epochs=epochs,
+            path_weights=weights_path,
+            path_figure=figure_path
+        )
+
+        return trained_model
+
+
